@@ -1,5 +1,9 @@
-scriptdir <- "/Volumes/FreeAgent GoFlex Drive/jax/meiosis/scripts/PMCA/"
-setwd(scriptdir)
+library(dplyr)
+library(ggplot2)
+
+rm(list = ls())
+setwd("~/Dropbox/GitHub/PMCA")
+
 source("get.mca.R")
 source("get.inter.R")
 source("get.scores.R")
@@ -8,7 +12,6 @@ source("permutation.proc.R")
 source("pmca.R")
 source("match.patterns.R")
 
-setwd("/Volumes/FreeAgent GoFlex Drive/jax/Xulong/gareth/")
 load("dataForPMCA_chosenGenes.RData")
 
 mca.real <- get.mca(X,Y) # get Zx, Zy, sigma, etc.
@@ -19,7 +22,7 @@ plot(mca.real$sigma) # plot of singular values of the covariance matrix
 # B: number of permutations
 # alpha: want the FPR <= alpha
 # plot: TRUE will plot one of the FPR distributions across all B permutations.
-by=6; method="each"; B=1000; alpha=.05; plot=TRUE;
+by = 6; method = "each"; B = 1000; alpha = .05; plot = TRUE;
 
 # get scores for the real data. Lower scores --> closer pattern match
 scores.real <- get.scores(mca.real$Zx,mca.real$Zy)
@@ -73,4 +76,3 @@ for (i in 1:nrow(inter)) {
 }
 mapped.mat
 save(result,mapped.mat,file=paste0("PMCAresult_",Sys.Date(),".RData"))
-

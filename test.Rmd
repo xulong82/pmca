@@ -1,0 +1,35 @@
+---
+title: "Identifying matching patterns in multiple datasets"
+author: "Xulong Wang"
+date: "September 2, 2015"
+output: html_document
+---
+
+##### This document describes methods to identify matching patterns in multiple datasets. 
+
+```{r, include = F}
+
+library(ape)
+library(amap)
+library(dplyr)
+library(reshape)
+library(ggplot2)
+library(genefilter)
+library(RColorBrewer)
+library(WGCNA)
+
+```
+
+NCI60 and Immgen datasets are suitable datasets for testing. NCI60 include transcriptome and proteomic results of 59 cancer cell lines. Immgen includes transcriptome of 244 well-defined immulogical cell types. Immgen data was used in this particular analysis.
+
+```{r}
+setwd("~/Dropbox/GitHub/MCA")
+load("nci60.rdt")
+load("../Lupus/Immgen/immgenList.rdt") # version:20150811
+immgen <- immgenList$immgen # 224 transcriptome
+
+str(nci60)
+dim(immgen)
+
+```
+

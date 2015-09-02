@@ -1,0 +1,231 @@
+---
+title: "Identifying matching patterns in multiple datasets"
+author: "Xulong Wang"
+date: "September 2, 2015"
+output: html_document
+---
+
+##### This document describes methods to identify matching patterns in multiple datasets. 
+
+```{r, include = F}
+
+library(ape)
+library(amap)
+library(dplyr)
+library(reshape)
+library(ggplot2)
+library(genefilter)
+library(RColorBrewer)
+library(WGCNA)
+
+```
+
+NCI60 and Immgen datasets are suitable for testing. NCI60 include transcriptome and proteomic results of 59 cancer cell lines. Immgen includes transcriptome of 244 well-defined immulogical cell types. Immgen data was used in this particular analysis.
+
+```{r}
+load("~/Dropbox/GitHub/MCA/nci60.rdt")
+str(nci60)
+
+load("~/Dropbox/GitHub/Lupus/Immgen/immgenList.rdt") # version:20150811
+immgen <- immgenList$immgen # 224 transcriptome
+dim(immgen)
+(type <- gsub("_.*", "", names(immgen)))
+(tissue <- gsub(".*_", "", names(immgen)))
+```
+
+To simulate samples with defined signal, we mixed the 34 spleen cells with certain proportions in 10 pools. Corresponding transcriptomes of the 10 pools were built based on the 34 cell transcriptomes and corresponding proportions.
+
+```{r}
+immgen <- immgen[tissue == "Sp"] # only spleen cells
+(type <- gsub("_.*", "", names(immgen)))
+immgen <- immgen[type %in% c("B", "DC", "T", "NK", "NKT")] # refine to major types
+(type <- gsub("_.*", "", names(immgen)))
+(names(immgen) <- gsub("_Sp", "", names(immgen)))
+summary(rowVars(immgen))
+immgen <- immgen[rowVars(immgen) > 0.1, ]
+
+M <- ncol(immgen) # cell number
+N <- nrow(immgen) # gene number
+P0 <- 10 # sample group number
+
+signal <- rbind( # TRUE signal: adjustable
+  T_4Nve = seq(from = 0.1, to = 0.01, length.out = P0),
+  T_8Nve = seq(from = 0.1, to = 0.01, length.out = P0),
+  T_4Mem = seq(from = 0.01, to = 0.2, length.out = P0),
+  T_8Mem = seq(from = 0.01, to = 0.2, length.out = P0)
+); colnames(signal) <- paste0("S", 1:P0)
+
+pseudo <- lapply(1:1, function(x) { # replicates
+  signal_noise = signal + rnorm(2 * P0, 0.01, 0.01)
+  random = rnorm(M * P0, mean = 1/M * 2, sd = 0.02)
+  random = matrix(random, nrow = M, ncol = P0)
+  random = random[-c(1:4), ]
+  rownames(random) = setdiff(names(immgen), rownames(signal))
+  X = rbind(signal_noise, random) # M by P0
+  X[X < 0] = 0
+  X = sweep(X, 2, colSums(X), "/")
+  Y = as.matrix(immgen[, rownames(X)]) %*% X # N by P0
+  Y = sweep(Y, 2, colSums(Y), "/") * 1e5
+  list(X = X, Y = Y)
+})
+
+X <- do.call(cbind, lapply(pseudo, function(x) x$X)); dim(X)
+Y <- do.call(cbind, lapply(pseudo, function(x) x$Y)); dim(Y)
+
+mycol <- c("red", "red", "blue", "blue", rep("grey30", 30))
+hcX <- hcluster(X, method = "pearson", link = "average") %>% as.phylo
+plot(hcX, direction="downward", tip.col = mycol)
+
+Xg <- melt(X) # graph the patterns 
+Xg$X2 <- factor(Xg$X2, levels = paste0("S", 1:10))
+ggplot(Xg, aes(x = X2, y = value)) + geom_bar(fill = rep(mycol, 10), color = "white", stat = "identity")
+
+```
+
+With simulated pseudo-samples, we want to identify genes that follow the same patterns as cell proportions over the pseudo-samples. These can be signature genes for the corresponding cells.
+
+We implemented multiple methods for this purpose, including WGCNA, independent PCA, combined PCA, MCA, and PMCA
+
+##### WGCNA
+
+```{r}
+power <- c(c(1:10), seq(12, 20, by = 2))
+sft.x <- pickSoftThreshold(t(X), powerVector = power)
+sft.y <- pickSoftThreshold(t(Y), powerVector = power)
+
+plot(power, rep(0, length(power)), type = "n", ylab = "Signed R^2")
+text(power, -sign(sft.x$fitIndices[,3])*sft.x$fitIndices[,2], labels = power, col = "red")
+text(power, -sign(sft.y$fitIndices[,3])*sft.y$fitIndices[,2], labels = power, col = "blue")
+abline(h = 0.90,col = "green")
+
+net.x = blockwiseModules(t(X), power = 1)
+net.y = blockwiseModules(t(Y), power = 20)
+
+table(net.x$colors) # wrong signal in X
+table(net.y$colors) # gene groups
+
+# correlate eigen-genes of each group with true signal
+sig_mes_cor <- cor(cbind(t(X[1:4, ]), net.y$MEs))[1:4, -c(1:4)]
+(mes_select <- apply(sig_mes_cor, 1, which.max))
+
+plot(1:P0, rep(0, P0), type = "n", ylim = c(0, 1))
+apply(X[1:2, ], 1, function(x) lines(1:P0, (x - min(x)) / (max(x) - min(x)), col = "red"))
+apply(net.y$MEs[, mes_select[1:2]], 2, function(x) lines(1:P0, (x - min(x)) / (max(x) - min(x)), type = "b", col = "blue"))
+
+plot(1:P0, rep(0, P0), type = "n", ylim = c(0, 1))
+apply(X[3:4, ], 1, function(x) lines(1:P0, (x - min(x)) / (max(x) - min(x)), col = "red"))
+apply(net.y$MEs[, mes_select[3:4]], 2, function(x) lines(1:P0, (x - min(x)) / (max(x) - min(x)), type = "b", col = "blue"))
+
+```
+
+##### PCA on each dataset
+
+```{r}
+svd.x <- svd(X - rowMeans(X))
+svd.y <- svd(Y - rowMeans(Y))
+
+pc.x <- diag(svd.x$d) %*% t(svd.x$v)
+pc.y <- diag(svd.y$d) %*% t(svd.y$v)
+
+par(mfrow = c(2, 3))
+for(x in 1:6) barplot(pc.x[x, ], main = x)
+for(x in 1:6) barplot(pc.y[x, ], main = x)
+
+Xm <- X[, c(9:10, 5:8, 1:4)] # shuffle the samples should not matter and indeed
+svd.xm <- svd(Xm - rowMeans(Xm))
+for(x in 1:6) barplot(svd.xm$v[, x], main = x)
+
+par(mfrow = c(1, 1))
+plot(svd.x$u[, 1], col = mycol, xlab = "", ylab = "")
+
+# first PC in X and Y concords well 
+# related top genes in svd.y$u are signatures of top cells in svd.x$u
+
+```
+
+# PCA the stacked datasets
+
+```{r}
+scale.x = t(scale(t(X)))
+scale.y = t(scale(t(Y)))
+xy = rbind(scale.x, scale.y)
+svd.xy = svd(xy)
+pc.xy <- diag(svd.xy$d) %*% t(svd.xy$v)
+
+par(mfrow = c(2, 3))
+for(x in 1:6) barplot(svd.xy$v[, x], main = x)
+
+# first PC is the true signal
+# take top items in both ends of svd.xy$u, genes are signatures of related cells
+
+u_signal <- svd.xy$u[, 1]; names(u_signal) <- rownames(xy)
+cell_gene <- u_signal[abs(u_signal) > quantile(u_signal, 0.9)]
+
+par(mfrow = c(1, 1))
+plot(cell_gene[! grepl("_", names(cell_gene))], ylab = "") # all genes
+points(cell_gene[grepl("^T_[48]Nve", names(cell_gene))], pch = 17, cex = 2, col = "red")
+points(cell_gene[grepl("^T_[48]Mem", names(cell_gene))], pch = 17, cex = 2, col = "blue")
+
+```
+
+##### MCA method in Tan et al.
+
+```{r}
+Xp = X - rowMeans(X)
+Yp = Y - rowMeans(Y)
+C = X %*% t(Y) / (ncol(X) - 1)
+
+svd.c = svd(C)
+u = svd.c$u # left singular vector
+v = svd.c$v # right signular vector
+d = svd.c$d # cross-covariance
+
+plot(cumsum(d)/sum(d), type = "b", ylim = c(0, 1)) 
+plot(cumsum(svd.xy$d)/sum(svd.xy$d), type = "b", ylim = c(0, 1)) 
+# 1st variance explained all, this is striking contrast with variances of idependent PCA, make sensei, and argues for MCA
+
+A = t(X) %*% u # projections of X onto u
+B = t(Y) %*% v # projections of Y onto v
+
+# A and B are linear combinations of X and Y, and vice versa
+# total covariance of A and B are the same as total covariance of X and Y
+# cov(A, B) is diagnal, and is largest in the first component
+
+# Signular vectors (u, v) describe patterns of anomalies in each dataset that tend to occur simultaneously
+# Coefficients (A, B) represent amplitudes of the respective patterns in each sample
+
+plot((A[, 1] - min(A[, 1])) / (max(A[, 1] - min(A[, 1]))), type = "b", ylab = "")
+lines((B[, 1] - min(B[, 1])) / (max(B[, 1] - min(B[, 1]))), type = "b", col = "red")
+
+plot((A[, 2] - min(A[, 2])) / (max(A[, 2] - min(A[, 2]))), type = "b", ylab = "")
+lines((B[, 2] - min(B[, 2])) / (max(B[, 2] - min(B[, 2]))), type = "b", col = "red")
+
+plot((A[, 3] - min(A[, 3])) / (max(A[, 3] - min(A[, 3]))), type = "b", ylab = "")
+lines((B[, 3] - min(B[, 3])) / (max(B[, 3] - min(B[, 3]))), type = "b", col = "red")
+
+# Mapping rows (X and Y) to principal components, yields weights of each gene in the new axis
+Zx = X %*% A
+Zy = Y %*% A # Robyn
+Zy = Y %*% B # Classical
+
+plot(Zx[, 1], Zx[, 2], type = "n", xlab = "1", ylab = "2")
+text(Zx[, 1], Zx[, 2], rownames(Zx), col = mycol)
+
+# compute distances between Zx and Zy using the first two patterns
+
+# graph.dt <- X[set1[, 1], ]
+# graph.dt <- Y[set2[, 1], ]
+# graph.dt <- t(scale(t(graph.dt)))
+# graph.dt <- graph.dt - graph.dt[, 1]
+# 
+# plot(1:59, rep(0, 59), type = "l", col = "blue", xlab = "", xaxt = "n", ylab = "", ylim = c(-5, 5))
+# lapply(1:nrow(graph.dt), function(i) lines(graph.dt[i, ], type = "l", col = "grey30"))
+# lines(colMeans(graph.dt), type = "b", lwd = 3, col = "red")
+# axis(1, at=1:59, labels = 1:59)
+
+```
+
+### Thoughts
+1. WGCNA: we need to know patterns in advance for the small dataset
+2. PCA: first PCs works well for now, but what if noise level high? MCA's first PC was impressive
+3. PMCA to MCA, R has much to say
