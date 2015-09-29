@@ -173,7 +173,8 @@ points(cell_gene[grepl("^T_[48]Mem", names(cell_gene))], pch = 17, cex = 2, col 
 ```{r}
 Xp = X - rowMeans(X)
 Yp = Y - rowMeans(Y)
-C = X %*% t(Y) / (ncol(X) - 1)
+C = Xp %*% t(Yp) / ncol(X) # R's
+C = Xp %*% t(Yp) / (ncol(X) - 1)
 
 svd.c = svd(C)
 u = svd.c$u # left singular vector
@@ -184,8 +185,8 @@ plot(cumsum(d)/sum(d), type = "b", ylim = c(0, 1))
 plot(cumsum(svd.xy$d)/sum(svd.xy$d), type = "b", ylim = c(0, 1)) 
 # 1st variance explained all, this is striking contrast with variances of idependent PCA, make sensei, and argues for MCA
 
-A = t(X) %*% u # projections of X onto u
-B = t(Y) %*% v # projections of Y onto v
+A = t(Xp) %*% u # projections of X onto u
+B = t(Yp) %*% v # projections of Y onto v
 
 # A and B are linear combinations of X and Y, and vice versa
 # total covariance of A and B are the same as total covariance of X and Y
@@ -205,7 +206,11 @@ lines((B[, 3] - min(B[, 3])) / (max(B[, 3] - min(B[, 3]))), type = "b", col = "r
 
 # Mapping rows (X and Y) to principal components, yields weights of each gene in the new axis
 Zx = X %*% A
+Zx <- t(scale(t(Zx),scale=T, center=F))
+
 Zy = Y %*% A # Robyn
+Zy <- t(scale(t(Zy),scale=T, center=F))
+
 Zy = Y %*% B # Classical
 
 plot(Zx[, 1], Zx[, 2], type = "n", xlab = "1", ylab = "2")

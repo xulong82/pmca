@@ -39,7 +39,8 @@ iterative.proc <- function(scores,alpha=.05,w,tau=1,method="overall",by=3,rowter
       for (i in 1:p) {
         FPR[i,] <- rowMeans(fpr[i,,])
       }
-      if (all(FPR[,by]<=alpha)) {
+      if (all(FPR[,by]<=alpha)) { # bug?
+#     if (all(FPR<=alpha)) {
         done=TRUE
       } else {
         tau <- tau + .1
