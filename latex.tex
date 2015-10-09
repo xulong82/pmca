@@ -1,0 +1,82 @@
+% Table created by stargazer v.5.2 by Marek Hlavac, Harvard University. E-mail: hlavac at fas.harvard.edu
+% Date and time: Fri, Oct 09, 2015 - 13:52:03
+
+\documentclass[11pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
+%\geometry{landscape}                		% Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
+								% TeX will automatically convert eps --> pdf in pdflatex		
+\usepackage{amssymb}
+
+\title{Brief Article}
+\author{The Author}
+%\date{}							% Activate to display a given date or no date
+
+\begin{document}
+\maketitle
+%\section{}
+%\subsection{}
+
+$y_i = \beta_0 + \beta_1 Age_i + beta_2 App_i + \beta_{12} Age_i \cdot App_i + \beta_3 batch_i + \epsilon_i $
+
+\begin{table}[!htbp] \centering 
+  \caption{} 
+  \label{} 
+\begin{tabular}{@{\extracolsep{5pt}} ccc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+ & sample & cell type \\ 
+\hline \\[-1.8ex] 
+1 & WT4m & Int1 \\ 
+2 & WT5m & Oligo3,Mgl2 \\ 
+3 & WT6m & Oligo3,Mgl2 \\ 
+4 & APP2m & CA2Pyr2 \\ 
+5 & APP5m & Int1 \\ 
+6 & APP6m & Choroid,Epend \\ 
+\hline \\[-1.8ex] 
+\end{tabular} 
+\end{table} 
+
+\begin{table}[!htbp] \centering 
+  \caption{} 
+  \label{} 
+\begin{tabular}{@{\extracolsep{5pt}} ccccccc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+ & WT4m & WT5m & WT6m & APP2m & APP5m & APP6m \\ 
+\hline \\[-1.8ex] 
+WT4m & $1$ & $0$ & $0$ & $0$ & $1$ & $0$ \\ 
+WT5m & $0$ & $2$ & $2$ & $0$ & $0$ & $0$ \\ 
+WT6m & $0$ & $2$ & $2$ & $0$ & $0$ & $0$ \\ 
+APP2m & $0$ & $0$ & $0$ & $1$ & $0$ & $0$ \\ 
+APP5m & $1$ & $0$ & $0$ & $0$ & $1$ & $0$ \\ 
+APP6m & $0$ & $0$ & $0$ & $0$ & $0$ & $2$ \\ 
+\hline \\[-1.8ex] 
+\end{tabular} 
+\end{table} 
+
+\begin{table}[!htbp] \centering 
+  \caption{} 
+  \label{} 
+\begin{tabular}{@{\extracolsep{5pt}} ccccc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+ & Estimate & Std. Error & t value & Pr(\textgreater \textbar t\textbar ) \\ 
+\hline \\[-1.8ex] 
+(Intercept) & $10.498$ & $0.019$ & $564.206$ & $0$ \\ 
+age4m & $$-$0.011$ & $0.024$ & $$-$0.451$ & $0.654$ \\ 
+age5m & $$-$0.037$ & $0.022$ & $$-$1.695$ & $0.096$ \\ 
+age6m & $$-$0.062$ & $0.024$ & $$-$2.563$ & $0.013$ \\ 
+groupAPP & $0.969$ & $0.027$ & $35.235$ & $0$ \\ 
+batchmouse & $$-$0.040$ & $0.020$ & $$-$2.018$ & $0.049$ \\ 
+age4m:groupAPP & $0.040$ & $0.035$ & $1.141$ & $0.259$ \\ 
+age5m:groupAPP & $0.051$ & $0.033$ & $1.558$ & $0.126$ \\ 
+age6m:groupAPP & $0.024$ & $0.037$ & $0.659$ & $0.513$ \\ 
+\hline \\[-1.8ex] 
+\end{tabular} 
+\end{table} 
+
+\end{document}  
+
