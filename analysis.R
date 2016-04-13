@@ -5,7 +5,7 @@ library(stargazer)
 
 rm(list = ls())
 setwd("~/Dropbox/GitHub/pmca")
-load("dataForPMCA_chosenGenes.RData")
+load("./dataForPMCA_chosenGenes.RData")
 
 (gene = colnames(X))
 
@@ -21,10 +21,13 @@ group = c("WT2m", "WT4m", "WT5m", "WT6m", "APP2m", "APP4m", "APP5m", "APP6m")
 group = factor(paste0(geno, month), levels = group)
 
 # X matrix as per sample
+
 wt2m = colMeans(X[group == "WT2m", ])
 X = sweep(X, 2, wt2m, "-") # WT:2m reference
 
 # X matrix as per group
+# use mean, the 1st strategy, to keep it simple
+
 X = t(sapply(levels(group), function(x) colMeans(X[group == x, ])))
 
 X = t(sapply(levels(group), function(x) { # median / mad: not stable??
@@ -33,7 +36,8 @@ X = t(sapply(levels(group), function(x) { # median / mad: not stable??
 
 X = sweep(X, 2, X[1, ], "-")[-1, ] # WT:2m reference
 
-# cluster
+# cluster the cells
+
 major = gsub("[0-9]+$", "", cell)
 hc1 <- hcluster(Y, method = "pearson", link = "average") %>% as.phylo
 
@@ -42,24 +46,51 @@ pdf("hc1.pdf", width = 12, height = 5)
 par(mar = c(5, 0, 4, 2), mfrow = c(1, 1))
 plot(hc1, cex=0.7, type = "unrooted")
 plot(hc1, cex=0.7, direction = "downward")
+plot(hc1, cex=0.7, direction = "downward", tip.col = as.numeric(as.factor(major)))
 
 dev.off()
 
-# MCA
+# MCA: the mathematics
+
+# center the matrix: 
+# we care the dynamics, instead of the baseline, actually, we should scale each row???
+
 Xp = X - rowMeans(X)
 Yp = Y - rowMeans(Y)
+
+# C[i,j]: covariance, or correlation, of ith bulk sample and jth sc sample, by the dynamics of the 108 genes
+
 C = Xp %*% t(Yp) / ncol(X) # R's
-# C = Xp %*% t(Yp) / (ncol(X) - 1)
+# C = Xp %*% t(Yp) / (ncol(X) - 1) # canonical
+
+# does the order of the 108 genes matter?
+# should not, to confirm
+
+xx = sample(ncol(X))
+C2 = Xp[, xx] %*% t(Yp[, xx]) / ncol(X) # R's
+
+C[1:5, 1:5]; C2[1:5, 1:5]
+
+# decompose the covariance
 
 svd.c = svd(C)
+
 u = svd.c$u # left singular vector
 v = svd.c$v # right signular vector
 d = svd.c$d # cross-covariance
 
 pdf("variance.pdf", width = 6, height = 4)
+
 plot(cumsum(d^2)/sum(d^2), type = "b", ylim = c(0, 1), ylab = "Cumulative variance (%)") 
 text(x = 1:48, y = cumsum(d^2)/sum(d^2), labels = 1:48, col = "red", adj = -1)
+
 dev.off()
+
+barplot(u[, 1])
+barplot(v[, 1])
+
+# column vectors of u correspond to the structures in X that explain the covariance
+# column vectors of v correspond to the structures in Y that explain the covariance
 
 A = t(Xp) %*% u # projections of X onto u
 B = t(Yp) %*% v # projections of Y onto v
@@ -72,12 +103,12 @@ B = t(Yp) %*% v # projections of Y onto v
 # Coefficients (A, B) represent amplitudes of the respective patterns in each sample
 
 Zx = X %*% A
-Zx <- t(scale(t(Zx),scale = T, center = F))
+Zx <- t(scale(t(Zx), scale = T, center = F))
 
 Zy = Y %*% A # Robyn
-Zy <- t(scale(t(Zy),scale = T, center = F))
+Zy <- t(scale(t(Zy), scale = T, center = F)) 
 
-# Zy = Y %*% B # MCA
+# Zy = Y %*% B # canonical
 
 source("pmca.R")
 source("get.mca.R")
@@ -97,16 +128,21 @@ by = 2; method = "each"; B = 1000; alpha = .05; plot = TRUE;
 
 scores.pos <- get.scores(Zx, Zy) # distance
 scores.neg <- get.scores(-Zx, Zy) # anti-associated
+
 # score[i,k,j]: distance of i-th cell in Y and j-th sample in X in regard to k-th principle
 
 set.seed(B)
 scores.ran <- permutation.proc(X, Y, method = method, B = B) # get scores for permutations
 
+# shuffle the dynamics for each cell over all genes, compute score, and repeat
+
 w <- apply(Zx, 2, sd) # get starting window vector
+
 # stringencies inverse-correlate with principle component variations
 
 # get wopt (optimal window vector)
 # tau: controls the width of the window (w/tau, larger tau = more strict) 
+
 set.seed(B)
 it.result <- iterative.proc(scores.ran, alpha, w, method = method, by = by, plot=plot, tau=0.3) 
 it.result$tau

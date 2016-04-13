@@ -1,5 +1,4 @@
 
-
 iterative.proc <- function(scores,alpha=.05,w,tau=1,method="overall",by=3,rowterms=rownames(Y),plot=TRUE) {
   B <- dim(scores)[4]; p <- dim(scores)[3]; J <- dim(scores)[2]; q <- dim(scores)[1]
   w <- w[1:J]

@@ -7,13 +7,13 @@ permutation.proc <- function(X,Y,method="overall",B=1000) {
   shuffle <- function(x) {
     x[sample(length(x))]
   }
-  if (method=="overall") {
+  if (method=="overall") { # shuffle each column, but overall in effect
     for (b in 1:B) {
       Xstar <- apply(X,2,shuffle)
       mca <- get.mca(Xstar,Y)
       scores[,,,b] <- get.scores(mca$Zx,mca$Zy)
     }
-  } else { #method=FPR for each rowterm of X
+  } else { # method = FPR for each rowterm of X
     for (b in 1:B) {
       Ystar <- t(apply(Y,1,shuffle))
       mca <- get.mca(X,Ystar)
