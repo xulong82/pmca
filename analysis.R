@@ -41,7 +41,7 @@ X = sweep(X, 2, X[1, ], "-")[-1, ] # WT:2m reference
 major = gsub("[0-9]+$", "", cell)
 hc1 <- hcluster(Y, method = "pearson", link = "average") %>% as.phylo
 
-pdf("hc1.pdf", width = 12, height = 5)
+pdf("hc1.pdf", width = 6, height = 4)
 
 par(mar = c(5, 0, 4, 2), mfrow = c(1, 1))
 plot(hc1, cex=0.7, type = "unrooted")

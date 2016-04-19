@@ -9,6 +9,7 @@
 \usepackage{graphicx}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
 								% TeX will automatically convert eps --> pdf in pdflatex		
 \usepackage{amssymb}
+\usepackage{amsmath}
 
 \title{Brief Article}
 \author{The Author}
@@ -18,6 +19,70 @@
 \maketitle
 %\section{}
 %\subsection{}
+\begin{equation}
+X = 
+\begin{bmatrix}
+x_{11} & x_{12} & \ldots & x_{1n} \\
+x_{21} & x_{22} & \ldots & x_{2n} \\
+\vdots & \vdots & \vdots & \vdots \\
+x_{p1} & x_{p2} & \ldots & x_{pn} 
+\end{bmatrix}
+; \quad
+Y = 
+\begin{bmatrix}
+y_{11} & y_{12} & \ldots & y_{1n} \\
+y_{21} & y_{22} & \ldots & y_{2n} \\
+\vdots & \vdots & \vdots & \vdots \\
+y_{q1} & y_{q2} & \ldots & y_{qn} 
+\end{bmatrix}
+\end{equation}
+
+\begin{eqnarray}
+a & = & u^{T} X \\
+b & = & v^{T} Y
+\end{eqnarray}
+
+\begin{eqnarray}
+c & = & cov[a, b] \\
+& = & cov[u^TX, v^TY] \\
+& = & u^T cov(X, Y) v
+\end{eqnarray}
+
+\begin{eqnarray}
+X' & = & X - rowmean(X); \quad p \times n \\
+Y' & = & Y - rowmean(Y); \quad q \times n \\
+C_{XY} & = & X'Y'^{T} / (n-1); \quad p \times q \\
+ & = & U \Sigma V^{T}; \quad U: p \times s; V: q \times s \\
+A & = & X'^{T} U; \quad n \times s \\
+B & = & Y'^{T} V; \quad n \times s
+\end{eqnarray}
+
+\begin{eqnarray}
+Z_X & = & X A; \quad p \times s \\
+Z_Y & = & Y A; \quad q \times s
+\end{eqnarray}
+
+\begin{equation}
+Z_X = 
+\begin{bmatrix}
+z_{x11} & z_{x12} & \ldots & z_{x1s} \\
+z_{x21} & z_{x22} & \ldots & z_{x2s} \\
+\vdots & \vdots & \vdots & \vdots \\
+z_{xp1} & z_{xp2} & \ldots & z_{xps} 
+\end{bmatrix}
+; \quad
+Z_Y = 
+\begin{bmatrix}
+z_{y11} & z_{y12} & \ldots & z_{y1s} \\
+z_{y21} & z_{y22} & \ldots & z_{y2s} \\
+\vdots & \vdots & \vdots & \vdots \\
+z_{yq1} & z_{yq2} & \ldots & z_{yqs} 
+\end{bmatrix}
+\end{equation}
+
+\begin{eqnarray}
+score_{ijk} & = & |z_{xik} - z_{yjk}|
+\end{eqnarray}
 
 $y_i = \beta_0 + \beta_1 Age_i + beta_2 App_i + \beta_{12} Age_i \cdot App_i + \beta_3 batch_i + \epsilon_i $
 
